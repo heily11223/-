@@ -38,6 +38,13 @@ def add_bg_from_local(image_file):
         )
     else:
         st.markdown("""<style>.stApp {background-color: #08090C; background-image: linear-gradient(#12141c 1px, transparent 1px), linear-gradient(90deg, #12141c 1px, transparent 1px); background-size: 40px 40px;}</style>""", unsafe_allow_html=True)
+        st.markdown("""
+<head>
+    <meta property="og:title" content="혁이의 통합 자산 관제소">
+    <meta property="og:description" content="실시간 포트폴리오 모니터링 시스템">
+    <meta property="og:image" content="https://github.com/heily11223/-/blob/main/bg.jpg?raw=true">
+</head>
+""", unsafe_allow_html=True)
 
 # 배경화면 적용 (확장자가 png라면 bg.png로 수정하세요)
 add_bg_from_local('bg.png')
