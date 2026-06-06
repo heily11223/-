@@ -121,11 +121,6 @@ portfolio = {
         "438910": {"name": "미국나스닥100레버리지(합성 H)", "shares": 0, "avg_price": 10000, "ticker": "ISA KODEX", "color": "highlight-kr"},
         "411060": {"name": "KRX 금현물", "shares": 0, "avg_price": 13000, "ticker": "SAFE ASSET", "color": "highlight-kr"}
     },
-    # ... 기존 한국 종목 마지막 내용 ...
-        "411060": {"name": "KRX 금현물", "shares": 300, "avg_price": 13000, "ticker": "SAFE ASSET", "color": "highlight-kr"}
-    },
-    
-    # ★ 여기에 아래 코드를 붙여넣으세요!
     "Cash": {
         "USD_CASH": {"name": "달러 현금 (예수금)", "amount": 25108.0, "currency": "USD"},  
         "KRW_CASH": {"name": "원화 현금 (CMA/파킹)", "amount": 8180000, "currency": "KRW"} 
