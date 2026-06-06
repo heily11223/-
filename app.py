@@ -95,6 +95,8 @@ header {visibility: hidden;}
 .dot { height: 6px; width: 6px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: middle; }
 .dot-us { background-color: #00E5FF; }
 .dot-kr { background-color: #00FF66; }
+.dot-cash { background-color: #FF9F00; }
+.highlight-cash { color: #FF9F00; font-weight: 700; font-size: 15px;}
 
 .card-ticker { color: #8C92A4; font-size: 12px; font-weight: 600; letter-spacing: 1px; margin-bottom: 4px; text-shadow: 0px 2px 4px rgba(0,0,0,0.8); }
 .card-title { color: #ffffff; font-size: 22px; font-weight: 800; margin-bottom: 15px; text-shadow: 0px 2px 6px rgba(0,0,0,0.8); }
@@ -118,7 +120,16 @@ portfolio = {
     "KR_Stocks": {
         "438910": {"name": "미국나스닥100레버리지(합성 H)", "shares": 0, "avg_price": 10000, "ticker": "ISA KODEX", "color": "highlight-kr"},
         "411060": {"name": "KRX 금현물", "shares": 0, "avg_price": 13000, "ticker": "SAFE ASSET", "color": "highlight-kr"}
+    },
+    # ... 기존 한국 종목 마지막 내용 ...
+        "411060": {"name": "KRX 금현물", "shares": 300, "avg_price": 13000, "ticker": "SAFE ASSET", "color": "highlight-kr"}
+    }, # <-- 여기에 꼭 쉼표(,)가 있어야 합니다.
+    # ★ 여기에 아래 코드를 붙여넣으세요!
+    "Cash": {
+        "USD_CASH": {"name": "달러 현금 (예수금)", "amount": 25108.0, "currency": "USD"},  
+        "KRW_CASH": {"name": "원화 현금 (CMA/파킹)", "amount": 8180000, "currency": "KRW"} 
     }
+
 }
 
 # 3. 실시간 가격 가져오기 로직
@@ -194,6 +205,31 @@ for ticker, info in portfolio["KR_Stocks"].items():
 <div class="card-title" style="color: #00FF66;">{info["name"]}</div>
 <div class="card-price">평단가 : ₩{info["avg_price"]:,.0f} &nbsp;|&nbsp; 현재가 : ₩{current_price:,.0f}</div>
 <div class="card-price">보유량 : {info["shares"]}주 / <span class="{info['color']}">₩{int(current_value_krw):,}</span> <span style="color:{yield_color}; font-weight:800; font-size:14px; margin-left:8px; text-shadow: 0px 1px 3px rgba(0,0,0,0.8);">{yield_sign}{yield_pct:.2f}%</span></div>
+</div>"""
+
+if "Cash" in portfolio:
+    for cash_id, info in portfolio["Cash"].items():
+        amount = info["amount"]
+        if info["currency"] == "USD":
+            current_value_krw = amount * usd_krw_rate
+            price_str = f"${amount:,.2f}"
+            badge_html = '<div class="badge"><span class="dot dot-us"></span>US 현금</div>'
+            title_color = "#00E5FF"
+        else:
+            current_value_krw = amount
+            price_str = f"₩{amount:,}"
+            badge_html = '<div class="badge"><span class="dot dot-cash"></span>KRW 현금</div>'
+            title_color = "#FF9F00"
+        
+        total_asset_krw += current_value_krw
+        pie_data.append({"종목명": info["name"], "평가액": current_value_krw})
+        
+        cards_html += f"""<div class="cyber-card">
+{badge_html}
+<div class="card-ticker">{info["currency"]} CASH</div>
+<div class="card-title" style="color: {title_color};">{info["name"]}</div>
+<div class="card-price">보유 금액 : {price_str}</div>
+<div class="card-price">원화 평가액 : <span class="highlight-cash" style="color:{title_color}">₩{int(current_value_krw):,}</span></div>
 </div>"""
 
 cards_html += '</div>'
