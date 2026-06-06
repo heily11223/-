@@ -7,7 +7,11 @@ import base64
 import os
 
 # 1. 페이지 기본 설정
-st.set_page_config(page_title="My Investment Dashboard", layout="wide")
+st.set_page_config(
+    page_title="건실청년의 통합 자산 관리", 
+    page_icon="⚡", 
+    layout="wide"
+)
 
 # ==========================================
 # 🖼️ 씹덕 감성 배경화면 주입 함수
