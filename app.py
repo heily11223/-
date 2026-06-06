@@ -106,7 +106,7 @@ header {visibility: hidden;}
 st.markdown(custom_css, unsafe_allow_html=True)
 # ==========================================
 
-st.markdown('<h1 style="color:white; font-weight:900; letter-spacing:-1px; text-shadow: 0px 4px 15px rgba(0,0,0,0.9);">⚡ 건실청년의 희노애락</h1>', unsafe_allow_html=True)
+st.markdown('<h1 style="color:white; font-weight:900; letter-spacing:-1px; text-shadow: 0px 4px 15px rgba(0,0,0,0.9);">⚡ 건실청년의 삶</h1>', unsafe_allow_html=True)
 
 # 2. 내 보유 자산 수동 입력 (평단가 기준)
 portfolio = {
