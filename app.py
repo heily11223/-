@@ -380,28 +380,39 @@ df_history = load_history(history_csv_url)
 if not df_history.empty and len(df_history) > 0:
     st.markdown('<h3 style="color:white; font-size:16px; margin-bottom:10px; text-shadow: 0px 4px 10px rgba(0,0,0,0.9);">📈 자산 성장 추이</h3>', unsafe_allow_html=True)
     
-    # Plotly 꺾은선 그래프 (높이를 슬림하게 조절)
-    fig_line = px.line(df_history, x='날짜', y='총자산', markers=True)
+    # 1. 날짜 가공: '2026-06-06' -> '6.6' 문자열로 변환하여 시간 표시 원천 차단
+    dates = pd.to_datetime(df_history['날짜'])
+    df_history['날짜_표시'] = dates.dt.month.astype(str) + "." + dates.dt.day.astype(str)
+    
+    # 2. 자산 가공: 10000으로 나누고 소수점을 버려 '만원' 단위로 맞춤 (예: 6094)
+    df_history['총자산(만원)'] = (df_history['총자산'] / 10000).astype(int)
+    
+    # Plotly 꺾은선 그래프 그리기
+    fig_line = px.line(df_history, x='날짜_표시', y='총자산(만원)', markers=True)
+    
     fig_line.update_layout(
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
         font=dict(color='#ffffff', family='Pretendard', size=13),
         margin=dict(t=15, b=15, l=15, r=15),
-        xaxis=dict(showgrid=False, color='#8C92A4', title=''),
-        yaxis=dict(showgrid=True, gridcolor='rgba(45, 49, 66, 0.4)', color='#8C92A4', title=''),
+        # type='category'를 넣어서 중간 날짜 안 생기고 무조건 있는 날짜만 균등하게 찍히도록 강제
+        xaxis=dict(showgrid=False, color='#8C92A4', title='', type='category'),
+        # ticksuffix='만원'을 넣어서 축 숫자에 만원 글자 추가
+        yaxis=dict(showgrid=True, gridcolor='rgba(45, 49, 66, 0.4)', color='#8C92A4', title='', ticksuffix='만원'),
         hovermode="x unified",
-        height=280  # ★ 그래프 박스 높이를 확 줄여서 스크롤을 방지함
+        height=280
     )
     
+    # 마우스 올렸을 때 뜨는 정보도 '6,094만원'처럼 콤마 찍히게 깔끔하게 포맷팅
     fig_line.update_traces(
         line=dict(color='#00E5FF', width=3),
-        marker=dict(size=8, color='#00FF66', line=dict(width=2, color='#ffffff'))
+        marker=dict(size=8, color='#00FF66', line=dict(width=2, color='#ffffff')),
+        hovertemplate='%{y:,}만원'
     )
     
     st.markdown('<div style="border: 1px solid rgba(31, 35, 51, 0.5); border-radius: 8px; padding: 10px; margin-bottom: 25px; background-color: rgba(14, 17, 23, 0.4); box-shadow: 0px 4px 15px rgba(0,0,0,0.3); backdrop-filter: blur(10px);">', unsafe_allow_html=True)
     st.plotly_chart(fig_line, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
-
 
 # ==========================================
 # 레이아웃 나누기 (계좌별 상세 & 포트폴리오 비중)
