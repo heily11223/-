@@ -343,7 +343,6 @@ components.html(
     """,
     height=85
 )
-)
 
 # ★ 총 수익률 및 손익 계산 로직
 total_pnl = total_asset_krw - total_invested_krw
