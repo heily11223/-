@@ -122,21 +122,10 @@ st.markdown(custom_css, unsafe_allow_html=True)
 st.markdown('<h1 style="color:white; font-weight:900; letter-spacing:-1px; text-shadow: 0px 4px 15px rgba(0,0,0,0.9);">⚡ 건실청년의 삶</h1>', unsafe_allow_html=True)
 
 # 2. 내 보유 자산 수동 입력 (평단가 기준)
-portfolio = {
-    "US_Stocks": {
-        "MSFU": {"shares": 115, "avg_price": 32.35, "color": "highlight", "title": "마이크로소프트 2X"},
-        "METU": {"shares": 150, "avg_price": 25.01, "color": "highlight", "title": "메타 2X"},
-        "LMT": {"shares": 5, "avg_price": 515.19, "color": "highlight", "title": "록히드마틴"}
-    },
-    "KR_Stocks": {
-        "438910": {"name": "미국나스닥100레버리지(합성 H)", "shares": 0, "avg_price": 10000, "ticker": "ISA KODEX", "color": "highlight-kr"},
-        "411060": {"name": "KRX 금현물", "shares": 0, "avg_price": 13000, "ticker": "SAFE ASSET", "color": "highlight-kr"}
-    },
-    "Cash": {
-        "USD_CASH": {"name": "달러 현금 (예수금)", "amount": 25108.0, "currency": "USD"},  
-        "KRW_CASH": {"name": "원화 현금 (CMA/파킹)", "amount": 8180000, "currency": "KRW"} 
-    }
-}
+
+# ✅ 지운 자리에 이것만 딱 넣습니다. (스트림릿 서버 창고에서 데이터를 꺼내오는 명령어)
+import json
+portfolio = json.loads(st.secrets["PORTFOLIO_JSON"])
 
 # 3. 실시간 가격 가져오기 로직
 @st.cache_data(ttl=600)
