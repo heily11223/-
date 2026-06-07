@@ -322,7 +322,7 @@ components.html(
         function copyAccount() {
             // 눈에 보이지 않는 임시 텍스트 입력창을 만듭니다.
             var tempInput = document.createElement('input');
-            tempInput.value = '카카오뱅크 3333-01-2345678'; // ★ 여기에 본인 계좌번호 입력
+            tempInput.value = '토스뱅크 1000-8439-7555'; // ★ 여기에 본인 계좌번호 입력
             document.body.appendChild(tempInput);
             
             // 임시 창의 텍스트를 선택하고 강제 복사 명령을 내립니다. (구형/모바일 브라우저 호환)
