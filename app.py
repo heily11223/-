@@ -350,16 +350,64 @@ total_yield_pct = (total_pnl / total_invested_krw) * 100 if total_invested_krw >
 pnl_color = "#FF3366" if total_pnl < 0 else "#00FF66"  # 마이너스면 핑크, 플러스면 네온그린
 pnl_sign = "+" if total_pnl > 0 else ""
 
-# 총 자산 요약
+# 총 자산 요약 (높이와 여백을 압축하여 공간 확보)
 st.markdown(f"""
-<div style="background-color:rgba(14, 17, 23, 0.2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border:1px solid rgba(31, 35, 51, 0.5); border-radius:8px; padding:30px; text-align:center; margin-bottom:30px; box-shadow: 0px 10px 30px rgba(0,0,0,0.5);">
-    <div style="color:#a0a6b5; font-size:16px; font-weight:600; margin-bottom:10px; text-shadow: 0px 2px 4px rgba(0,0,0,0.8);">TOTAL ASSET (KRW)</div>
-    <div style="color:#ffffff; font-size:42px; font-weight:900; letter-spacing:-1px; text-shadow: 0px 4px 15px rgba(0,0,0,1);">₩{int(total_asset_krw):,}</div>
-    <div style="color:{pnl_color}; font-size:18px; font-weight:700; margin-top:5px; text-shadow: 0px 2px 5px rgba(0,0,0,0.8);">({pnl_sign}{int(total_pnl):,} &nbsp; {pnl_sign}{total_yield_pct:.2f}%)</div>
-    <div style="color:#a0a6b5; font-size:13px; margin-top:15px; text-shadow: 0px 1px 3px rgba(0,0,0,0.8);">적용 환율 : ₩{usd_krw_rate:,.2f}</div>
+<div style="background-color:rgba(14, 17, 23, 0.2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border:1px solid rgba(31, 35, 51, 0.5); border-radius:8px; padding:20px; text-align:center; margin-bottom:20px; box-shadow: 0px 10px 30px rgba(0,0,0,0.5);">
+    <div style="color:#a0a6b5; font-size:14px; font-weight:600; margin-bottom:5px; text-shadow: 0px 2px 4px rgba(0,0,0,0.8);">TOTAL ASSET (KRW)</div>
+    <div style="color:#ffffff; font-size:36px; font-weight:900; letter-spacing:-1px; text-shadow: 0px 4px 15px rgba(0,0,0,1);">₩{int(total_asset_krw):,}</div>
+    <div style="color:{pnl_color}; font-size:16px; font-weight:700; margin-top:5px; text-shadow: 0px 2px 5px rgba(0,0,0,0.8);">({pnl_sign}{int(total_pnl):,} &nbsp; {pnl_sign}{total_yield_pct:.2f}%)</div>
+    <div style="color:#a0a6b5; font-size:12px; margin-top:10px; text-shadow: 0px 1px 3px rgba(0,0,0,0.8);">적용 환율 : ₩{usd_krw_rate:,.2f}</div>
 </div>
 """, unsafe_allow_html=True)
 
+
+# ==========================================
+# 📈 자산 성장 히스토리 (Total Asset 바로 아래로 이동)
+# ==========================================
+# ★ 주의: heily11223/-/main/history.csv 주소가 맞는지 확인해 주세요.
+history_csv_url = "https://raw.githubusercontent.com/heily11223/-/main/history.csv"
+
+@st.cache_data(ttl=60)
+def load_history(url):
+    try:
+        df = pd.read_csv(url)
+        return df
+    except:
+        return pd.DataFrame(columns=["날짜", "총자산"])
+
+df_history = load_history(history_csv_url)
+
+if not df_history.empty and len(df_history) > 0:
+    st.markdown('<h3 style="color:white; font-size:16px; margin-bottom:10px; text-shadow: 0px 4px 10px rgba(0,0,0,0.9);">📈 자산 성장 추이</h3>', unsafe_allow_html=True)
+    
+    # Plotly 꺾은선 그래프 (높이를 슬림하게 조절)
+    fig_line = px.line(df_history, x='날짜', y='총자산', markers=True)
+    fig_line.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(color='#ffffff', family='Pretendard', size=13),
+        margin=dict(t=15, b=15, l=15, r=15),
+        xaxis=dict(showgrid=False, color='#8C92A4', title=''),
+        yaxis=dict(showgrid=True, gridcolor='rgba(45, 49, 66, 0.4)', color='#8C92A4', title=''),
+        hovermode="x unified",
+        height=280  # ★ 그래프 박스 높이를 확 줄여서 스크롤을 방지함
+    )
+    
+    fig_line.update_traces(
+        line=dict(color='#00E5FF', width=3),
+        marker=dict(size=8, color='#00FF66', line=dict(width=2, color='#ffffff'))
+    )
+    
+    st.markdown('<div style="border: 1px solid rgba(31, 35, 51, 0.5); border-radius: 8px; padding: 10px; margin-bottom: 25px; background-color: rgba(14, 17, 23, 0.4); box-shadow: 0px 4px 15px rgba(0,0,0,0.3); backdrop-filter: blur(10px);">', unsafe_allow_html=True)
+    st.plotly_chart(fig_line, use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+# ==========================================
+# 레이아웃 나누기 (계좌별 상세 & 포트폴리오 비중)
+col_cards, col_chart = st.columns([1.8, 1])
+
+# ... (이후 기존 코드 유지) ...
 # 레이아웃 나누기
 col_cards, col_chart = st.columns([1.8, 1])
 
