@@ -202,51 +202,59 @@ def get_kr_price(ticker, fallback_price):
 # --- 연산 및 HTML 카드 생성 ---
 usd_krw_rate = get_exchange_rate()
 total_asset_krw = 0
+total_invested_krw = 0  # ★ 총 매입 원금을 담을 그릇 추가
 pie_data = []
 
 cards_html = '<div class="card-grid">'
 
 # 미국 주식 처리
-for ticker, info in portfolio["US_Stocks"].items():
-    current_price = get_us_price(ticker, info["avg_price"])
-    current_value_usd = current_price * info["shares"]
-    current_value_krw = current_value_usd * usd_krw_rate
-    total_asset_krw += current_value_krw
-    
-    yield_pct = ((current_price - info["avg_price"]) / info["avg_price"]) * 100
-    yield_color = "#FF3366" if yield_pct < 0 else "#00FF66" 
-    yield_sign = "+" if yield_pct > 0 else ""
-    
-    pie_data.append({"종목명": info["title"], "평가액": current_value_krw})
-    
-    cards_html += f"""<div class="cyber-card">
+if "US_Stocks" in portfolio:
+    for ticker, info in portfolio["US_Stocks"].items():
+        current_price = get_us_price(ticker, info["avg_price"])
+        current_value_usd = current_price * info["shares"]
+        current_value_krw = current_value_usd * usd_krw_rate
+        
+        total_asset_krw += current_value_krw
+        total_invested_krw += (info["avg_price"] * info["shares"] * usd_krw_rate) # ★ 원금 더하기
+        
+        yield_pct = ((current_price - info["avg_price"]) / info["avg_price"]) * 100 if info["avg_price"] > 0 else 0
+        yield_color = "#FF3366" if yield_pct < 0 else "#00FF66" 
+        yield_sign = "+" if yield_pct > 0 else ""
+        
+        pie_data.append({"종목명": info["title"], "평가액": current_value_krw})
+        
+        cards_html += f"""<div class="cyber-card">
 <div class="badge"><span class="dot dot-us"></span>US 직투</div>
 <div class="card-ticker">{ticker}</div>
 <div class="card-title" style="color: #00E5FF;">{info["title"]}</div>
 <div class="card-price">평단가 : ${info["avg_price"]:,.2f} &nbsp;|&nbsp; 현재가 : ${current_price:,.2f}</div>
-<div class="card-price">보유량 : {info["shares"]}주 / <span class="{info['color']}">₩{int(current_value_krw):,}</span> <span style="color:{yield_color}; font-weight:800; font-size:14px; margin-left:8px; text-shadow: 0px 1px 3px rgba(0,0,0,0.8);">{yield_sign}{yield_pct:.2f}%</span></div>
+<div class="card-price">보유량 : {info["shares"]}주 / <span class="{info.get('color', 'highlight')}">₩{int(current_value_krw):,}</span> <span style="color:{yield_color}; font-weight:800; font-size:14px; margin-left:8px; text-shadow: 0px 1px 3px rgba(0,0,0,0.8);">{yield_sign}{yield_pct:.2f}%</span></div>
 </div>"""
 
 # 한국 주식 처리
-for ticker, info in portfolio["KR_Stocks"].items():
-    current_price = get_kr_price(ticker, info["avg_price"])
-    current_value_krw = current_price * info["shares"]
-    total_asset_krw += current_value_krw
-    
-    yield_pct = ((current_price - info["avg_price"]) / info["avg_price"]) * 100
-    yield_color = "#FF3366" if yield_pct < 0 else "#00FF66"
-    yield_sign = "+" if yield_pct > 0 else ""
-    
-    pie_data.append({"종목명": info["name"], "평가액": current_value_krw})
-    
-    cards_html += f"""<div class="cyber-card">
+if "KR_Stocks" in portfolio:
+    for ticker, info in portfolio["KR_Stocks"].items():
+        current_price = get_kr_price(ticker, info["avg_price"])
+        current_value_krw = current_price * info["shares"]
+        
+        total_asset_krw += current_value_krw
+        total_invested_krw += (info["avg_price"] * info["shares"]) # ★ 원금 더하기
+        
+        yield_pct = ((current_price - info["avg_price"]) / info["avg_price"]) * 100 if info["avg_price"] > 0 else 0
+        yield_color = "#FF3366" if yield_pct < 0 else "#00FF66"
+        yield_sign = "+" if yield_pct > 0 else ""
+        
+        pie_data.append({"종목명": info["name"], "평가액": current_value_krw})
+        
+        cards_html += f"""<div class="cyber-card">
 <div class="badge"><span class="dot dot-kr"></span>{info["ticker"]}</div>
 <div class="card-ticker">{ticker}</div>
 <div class="card-title" style="color: #00FF66;">{info["name"]}</div>
 <div class="card-price">평단가 : ₩{info["avg_price"]:,.0f} &nbsp;|&nbsp; 현재가 : ₩{current_price:,.0f}</div>
-<div class="card-price">보유량 : {info["shares"]}주 / <span class="{info['color']}">₩{int(current_value_krw):,}</span> <span style="color:{yield_color}; font-weight:800; font-size:14px; margin-left:8px; text-shadow: 0px 1px 3px rgba(0,0,0,0.8);">{yield_sign}{yield_pct:.2f}%</span></div>
+<div class="card-price">보유량 : {info["shares"]}주 / <span class="{info.get('color', 'highlight-kr')}">₩{int(current_value_krw):,}</span> <span style="color:{yield_color}; font-weight:800; font-size:14px; margin-left:8px; text-shadow: 0px 1px 3px rgba(0,0,0,0.8);">{yield_sign}{yield_pct:.2f}%</span></div>
 </div>"""
 
+# 현금 자산 처리 로직
 if "Cash" in portfolio:
     for cash_id, info in portfolio["Cash"].items():
         amount = info["amount"]
@@ -262,6 +270,8 @@ if "Cash" in portfolio:
             title_color = "#FF9F00"
         
         total_asset_krw += current_value_krw
+        total_invested_krw += current_value_krw # ★ 현금은 원금=평가액 동일하므로 그대로 더함
+        
         pie_data.append({"종목명": info["name"], "평가액": current_value_krw})
         
         cards_html += f"""<div class="cyber-card">
@@ -278,12 +288,19 @@ df_pie = pd.DataFrame(pie_data)
 # --- 화면 출력 ---
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 총 자산 요약 (완전 투명 + 텍스트 그림자 강화)
+# ★ 총 수익률 및 손익 계산 로직
+total_pnl = total_asset_krw - total_invested_krw
+total_yield_pct = (total_pnl / total_invested_krw) * 100 if total_invested_krw > 0 else 0
+pnl_color = "#FF3366" if total_pnl < 0 else "#00FF66"  # 마이너스면 핑크, 플러스면 네온그린
+pnl_sign = "+" if total_pnl > 0 else ""
+
+# 총 자산 요약
 st.markdown(f"""
 <div style="background-color:rgba(14, 17, 23, 0.2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border:1px solid rgba(31, 35, 51, 0.5); border-radius:8px; padding:30px; text-align:center; margin-bottom:30px; box-shadow: 0px 10px 30px rgba(0,0,0,0.5);">
     <div style="color:#a0a6b5; font-size:16px; font-weight:600; margin-bottom:10px; text-shadow: 0px 2px 4px rgba(0,0,0,0.8);">TOTAL ASSET (KRW)</div>
     <div style="color:#ffffff; font-size:42px; font-weight:900; letter-spacing:-1px; text-shadow: 0px 4px 15px rgba(0,0,0,1);">₩{int(total_asset_krw):,}</div>
-    <div style="color:#a0a6b5; font-size:13px; margin-top:10px; text-shadow: 0px 1px 3px rgba(0,0,0,0.8);">적용 환율 : ₩{usd_krw_rate:,.2f}</div>
+    <div style="color:{pnl_color}; font-size:18px; font-weight:700; margin-top:5px; text-shadow: 0px 2px 5px rgba(0,0,0,0.8);">({pnl_sign}{int(total_pnl):,} &nbsp; {pnl_sign}{total_yield_pct:.2f}%)</div>
+    <div style="color:#a0a6b5; font-size:13px; margin-top:15px; text-shadow: 0px 1px 3px rgba(0,0,0,0.8);">적용 환율 : ₩{usd_krw_rate:,.2f}</div>
 </div>
 """, unsafe_allow_html=True)
 
