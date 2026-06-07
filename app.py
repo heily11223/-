@@ -289,14 +289,12 @@ df_pie = pd.DataFrame(pie_data)
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ★ 추가: 건실청년에게 후원하기 버튼 (클릭 시 계좌번호 자동 복사)
+# ★ 추가: 건실청년에게 후원하기 버튼 (아이프레임 보안 우회 버전)
 import streamlit.components.v1 as components
 components.html(
     """
     <div style="text-align: center; margin-bottom: 15px;">
-        <button onclick="
-            navigator.clipboard.writeText('토스뱅크 1000-8439-7555'); 
-            alert('⚡ 건실청년의 계좌번호가 복사되었습니다!\n(토스뱅크 1000-8439-7555)');
-        " 
+        <button onclick="copyAccount()" 
             style="
                 background: linear-gradient(45deg, #FF9F00, #FF3366);
                 color: white; 
@@ -319,8 +317,32 @@ components.html(
             💰 건실청년에게 후원하기
         </button>
     </div>
+
+    <script>
+        function copyAccount() {
+            // 눈에 보이지 않는 임시 텍스트 입력창을 만듭니다.
+            var tempInput = document.createElement('input');
+            tempInput.value = '카카오뱅크 3333-01-2345678'; // ★ 여기에 본인 계좌번호 입력
+            document.body.appendChild(tempInput);
+            
+            // 임시 창의 텍스트를 선택하고 강제 복사 명령을 내립니다. (구형/모바일 브라우저 호환)
+            tempInput.select();
+            tempInput.setSelectionRange(0, 99999); 
+            
+            try {
+                document.execCommand('copy');
+                alert('⚡ 건실청년의 계좌번호가 복사되었습니다!\\n(카카오뱅크 3333-01-2345678)');
+            } catch (err) {
+                alert('복사 권한이 차단되었습니다. 수동으로 복사해주세요: 카카오뱅크 3333-01-2345678');
+            }
+            
+            // 임시 창을 다시 지웁니다.
+            document.body.removeChild(tempInput);
+        }
+    </script>
     """,
-    height=65
+    height=85
+)
 )
 
 # ★ 총 수익률 및 손익 계산 로직
