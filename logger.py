@@ -5,9 +5,8 @@ from datetime import datetime
 import os
 
 # 1. 구글 시트 주소 (★본인 시트 링크로 변경 필수)
-sheet_url = "https://docs.google.com/spreadsheets/d/1PQN3ef9KmynpP-P9GhBHdCVFXXto3_bG5HON8uLHaYE/edit?hl=ko&gid=0#gid=0"
-csv_url = sheet_url.replace('/edit?usp=sharing', '/export?format=csv')
-
+# ✅ 새로 넣을 부분 (본인 시트 ID와 방금 찾은 자산 탭의 gid 숫자를 넣으세요!)
+csv_url = "https://docs.google.com/spreadsheets/d/1PQN3ef9KmynpP-P9GhBHdCVFXXto3_bG5HON8uLHaYE/export?format=csv&gid=0"
 # 2. 데이터 및 가격 로드 함수
 def load_portfolio(url):
     df = pd.read_csv(url).fillna(0)
