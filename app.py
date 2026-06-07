@@ -123,9 +123,41 @@ st.markdown('<h1 style="color:white; font-weight:900; letter-spacing:-1px; text-
 
 # 2. 내 보유 자산 수동 입력 (평단가 기준)
 
-# ✅ 지운 자리에 이것만 딱 넣습니다. (스트림릿 서버 창고에서 데이터를 꺼내오는 명령어)
-import json
-portfolio = json.loads(st.secrets["PORTFOLIO_JSON"])
+import pandas as pd
+
+# 1. 방금 복사한 구글 시트 링크를 아래 따옴표 안에 붙여넣으세요.
+sheet_url = "https://docs.google.com/spreadsheets/d/1PQN3ef9KmynpP-P9GhBHdCVFXXto3_bG5HON8uLHaYE/edit?usp=sharing"
+
+# 2. 파이썬이 읽을 수 있는 CSV 다운로드 링크로 자동 변환하는 꼼수입니다.
+csv_url = sheet_url.replace('/edit?usp=sharing', '/export?format=csv')
+
+# 3. 구글 시트 데이터를 불러와서 포트폴리오 구조로 조립하는 함수 (1분 단위로 자동 갱신)
+@st.cache_data(ttl=60)
+def load_portfolio_from_gsheet(url):
+    df = pd.read_csv(url)
+    
+    # 빈 포트폴리오 뼈대 준비
+    p_data = {"US_Stocks": {}, "KR_Stocks": {}, "Cash": {}}
+    
+    # 엑셀의 각 줄을 하나씩 읽으면서 뼈대에 채워 넣음
+    for _, row in df.iterrows():
+        category = str(row['분류']).strip()
+        ticker = str(row['종목코드']).strip()
+        name = str(row['종목명']).strip()
+        shares = float(row['보유량'])
+        price = float(row['평단가'])
+        
+        if category == 'US':
+            p_data["US_Stocks"][ticker] = {"shares": shares, "avg_price": price, "color": "highlight", "title": name}
+        elif category == 'KR':
+            p_data["KR_Stocks"][ticker] = {"name": name, "shares": shares, "avg_price": price, "ticker": "KR_STOCK", "color": "highlight-kr"}
+        elif category == 'CASH':
+            p_data["Cash"][f"{ticker}_CASH"] = {"name": name, "amount": shares, "currency": ticker}
+            
+    return p_data
+
+# 조립 완료된 데이터를 기존 시스템에 장착
+portfolio = load_portfolio_from_gsheet(csv_url)
 
 # 3. 실시간 가격 가져오기 로직
 @st.cache_data(ttl=600)
