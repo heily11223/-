@@ -1,0 +1,37 @@
+name: 자동 자산 기록기
+
+on:
+  schedule:
+    # 깃허브 서버는 영국 기준(UTC)이라 한국 시간보다 9시간 느립니다.
+    # 한국 토요일 08:00 = 영국 금요일 23:00 -> 0 23 * * 5
+    - cron: '0 23 * * 5'
+  workflow_dispatch: # 내가 원할 때 수동으로 켤 수 있는 버튼 추가
+
+permissions:
+  contents: write
+
+jobs:
+  run-logger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 저장소 파일 가져오기
+        uses: actions/checkout@v4
+
+      - name: 파이썬 설치
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 필요한 패키지 설치
+        run: pip install pandas yfinance finance-datareader
+
+      - name: 🤖 자산 계산 스크립트 실행
+        run: python logger.py
+
+      - name: 💾 계산된 history.csv 저장
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add history.csv
+          git commit -m "📊 삐빅- 토요일 아침: 총자산 자동 기록 완료" || echo "변경된 내용 없음"
+          git push
