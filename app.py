@@ -131,21 +131,35 @@ sheet_url = "https://docs.google.com/spreadsheets/d/1PQN3ef9KmynpP-P9GhBHdCVFXXt
 # 2. 파이썬이 읽을 수 있는 CSV 다운로드 링크로 자동 변환하는 꼼수입니다.
 csv_url = sheet_url.replace('/edit?usp=sharing', '/export?format=csv')
 
-# 3. 구글 시트 데이터를 불러와서 포트폴리오 구조로 조립하는 함수 (1분 단위로 자동 갱신)
+# 3. 구글 시트 데이터를 불러와서 포트폴리오 구조로 조립하는 함수 (강력 방어 로직 추가)
 @st.cache_data(ttl=60)
 def load_portfolio_from_gsheet(url):
     df = pd.read_csv(url)
+    df = df.fillna(0) # 🛡️ 방어 1: 빈칸(NaN)이 있으면 무조건 0으로 채움
     
-    # 빈 포트폴리오 뼈대 준비
     p_data = {"US_Stocks": {}, "KR_Stocks": {}, "Cash": {}}
     
-    # 엑셀의 각 줄을 하나씩 읽으면서 뼈대에 채워 넣음
     for _, row in df.iterrows():
-        category = str(row['분류']).strip()
+        category = str(row['분류']).strip().upper()
+        if category == '0' or category == '': continue # 빈 줄 건너뛰기
+        
         ticker = str(row['종목코드']).strip()
         name = str(row['종목명']).strip()
-        shares = float(row['보유량'])
-        price = float(row['평단가'])
+        
+        # 🛡️ 방어 2: 숫자에 콤마(,)가 섞여있어도 강제로 제거하고 숫자로 변환
+        try:
+            shares = float(str(row['보유량']).replace(',', '').strip())
+        except:
+            shares = 0.0
+            
+        try:
+            price = float(str(row['평단가']).replace(',', '').strip())
+        except:
+            price = 0.0
+            
+        # 🛡️ 방어 3: 평단가가 0원이면 이후 수익률 계산 시 0으로 나누기 에러가 나므로 아주 작은 값으로 대체
+        if price == 0 and category != 'CASH': 
+            price = 0.0001
         
         if category == 'US':
             p_data["US_Stocks"][ticker] = {"shares": shares, "avg_price": price, "color": "highlight", "title": name}
@@ -155,7 +169,6 @@ def load_portfolio_from_gsheet(url):
             p_data["Cash"][f"{ticker}_CASH"] = {"name": name, "amount": shares, "currency": ticker}
             
     return p_data
-
 # 조립 완료된 데이터를 기존 시스템에 장착
 portfolio = load_portfolio_from_gsheet(csv_url)
 
