@@ -31,8 +31,16 @@ def load_portfolio(url):
 portfolio = load_portfolio(csv_url)
 total_asset_krw = 0
 
-try: usd_krw_rate = float(yf.Ticker("KRW=X").history(period="1d")['Close'].iloc[0])
-except: usd_krw_rate = 1350.0
+try:
+    # 1안: 야후 파이낸스 (최근 7일 치를 불러와서 가장 마지막 '정상 작동했던 날'의 환율을 가져옴)
+    usd_krw_rate = float(yf.Ticker("KRW=X").history(period="7d")['Close'].dropna().iloc[-1])
+except:
+    try:
+        # 2안: 야후 서버가 완전히 죽었다면? 다른 데이터망(FinanceDataReader)으로 우회해서 최근 환율 확보
+        usd_krw_rate = float(fdr.DataReader('USD/KRW')['Close'].dropna().iloc[-1])
+    except:
+        # 3안: 전 세계 금융망이 다 터지는(?) 초유의 사태에만 최근 평균치인 1380원 임시 적용
+        usd_krw_rate = 1380.0
 
 if "US_Stocks" in portfolio:
     for ticker, info in portfolio["US_Stocks"].items():
