@@ -176,10 +176,17 @@ portfolio = load_portfolio_from_gsheet(csv_url)
 @st.cache_data(ttl=600)
 def get_exchange_rate():
     try:
-        krw_usd = yf.Ticker("KRW=X").history(period="1d")
-        return float(krw_usd['Close'].iloc[0])
+        # 1안: 야후 파이낸스 (최근 7일 치를 불러와서 가장 마지막 '정상 작동했던 날'의 환율을 가져옴)
+        krw_usd = yf.Ticker("KRW=X").history(period="7d")
+        return float(krw_usd['Close'].dropna().iloc[-1])
     except:
-        return 1350.0 
+        try:
+            # 2안: 야후 서버가 일시적으로 죽었다면? 보조망(FinanceDataReader)으로 우회해서 최근 환율 확보
+            krw_usd_backup = fdr.DataReader('USD/KRW')
+            return float(krw_usd_backup['Close'].dropna().iloc[-1])
+        except:
+            # 3안: 금융망이 통째로 먹통이 되는 비상사태에만 최근 평균치인 1380원 적용
+            return 1380.0
 
 @st.cache_data(ttl=600)
 def get_us_price(ticker, fallback_price):
