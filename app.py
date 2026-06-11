@@ -14,9 +14,8 @@ st.set_page_config(
 )
 
 # ==========================================
-# 🖼️ 씹덕 감성 배경화면 주입 함수
+# 🖼️ 배경화면 주입 함수
 def add_bg_from_local(image_file):
-    # 폴더에 bg.jpg 파일이 있는지 확인 후 작동 (없으면 뻗지 않고 기본 테마 유지)
     if os.path.exists(image_file):
         with open(image_file, "rb") as file:
             encoded_string = base64.b64encode(file.read())
@@ -46,7 +45,7 @@ def add_bg_from_local(image_file):
 </head>
 """, unsafe_allow_html=True)
 
-# 배경화면 적용 (확장자가 png라면 bg.png로 수정하세요)
+# 배경화면 적용
 add_bg_from_local('bg.png')
 
 # ==========================================
@@ -71,7 +70,6 @@ header {visibility: hidden;}
 }
 
 .cyber-card {
-    /* 배경 60% 불투명도 + 블러 효과로 캐릭터가 은은하게 비침 */
     background-color: rgba(14, 17, 23, 0.6) !important;
     backdrop-filter: blur(10px) !important;
     -webkit-backdrop-filter: blur(10px) !important;
@@ -121,17 +119,10 @@ st.markdown(custom_css, unsafe_allow_html=True)
 
 st.markdown('<h1 style="color:white; font-weight:900; letter-spacing:-1px; text-shadow: 0px 4px 15px rgba(0,0,0,0.9);">⚡ 건실청년의 삶</h1>', unsafe_allow_html=True)
 
-# 2. 내 보유 자산 수동 입력 (평단가 기준)
-
-import pandas as pd
-
-# 1. 방금 복사한 구글 시트 링크를 아래 따옴표 안에 붙여넣으세요.
+# 구글 시트 연동
 sheet_url = "https://docs.google.com/spreadsheets/d/1PQN3ef9KmynpP-P9GhBHdCVFXXto3_bG5HON8uLHaYE/edit?usp=sharing"
-
-# 2. 파이썬이 읽을 수 있는 CSV 다운로드 링크로 자동 변환하는 꼼수입니다.
 csv_url = sheet_url.replace('/edit?usp=sharing', '/export?format=csv')
 
-# 3. 구글 시트 데이터를 불러와서 포트폴리오 구조로 조립하는 함수 (강력 방어 로직 추가)
 @st.cache_data(ttl=60)
 def load_portfolio_from_gsheet(url):
     df = pd.read_csv(url)
@@ -141,12 +132,13 @@ def load_portfolio_from_gsheet(url):
     
     for _, row in df.iterrows():
         category = str(row['분류']).strip().upper()
-        if category == '0' or category == '': continue # 빈 줄 건너뛰기
-        
         ticker = str(row['종목코드']).strip()
         name = str(row['종목명']).strip()
         
-        # 🛡️ 방어 2: 숫자에 콤마(,)가 섞여있어도 강제로 제거하고 숫자로 변환
+        # 🛡️ 방어 2: 분류나 종목코드가 '0', 빈칸, 'NAN' 이면 유령 행으로 판단하고 무조건 건너뜀
+        if category in ['0', '', 'NAN', 'NONE'] or ticker in ['0', '', 'NAN', 'NONE']: 
+            continue
+            
         try:
             shares = float(str(row['보유량']).replace(',', '').strip())
         except:
@@ -157,7 +149,6 @@ def load_portfolio_from_gsheet(url):
         except:
             price = 0.0
             
-        # 🛡️ 방어 3: 평단가가 0원이면 이후 수익률 계산 시 0으로 나누기 에러가 나므로 아주 작은 값으로 대체
         if price == 0 and category != 'CASH': 
             price = 0.0001
         
@@ -169,23 +160,20 @@ def load_portfolio_from_gsheet(url):
             p_data["Cash"][f"{ticker}_CASH"] = {"name": name, "amount": shares, "currency": ticker}
             
     return p_data
-# 조립 완료된 데이터를 기존 시스템에 장착
+
 portfolio = load_portfolio_from_gsheet(csv_url)
 
 # 3. 실시간 가격 가져오기 로직
 @st.cache_data(ttl=600)
 def get_exchange_rate():
     try:
-        # 1안: 야후 파이낸스 (최근 7일 치를 불러와서 가장 마지막 '정상 작동했던 날'의 환율을 가져옴)
         krw_usd = yf.Ticker("KRW=X").history(period="7d")
         return float(krw_usd['Close'].dropna().iloc[-1])
     except:
         try:
-            # 2안: 야후 서버가 일시적으로 죽었다면? 보조망(FinanceDataReader)으로 우회해서 최근 환율 확보
             krw_usd_backup = fdr.DataReader('USD/KRW')
             return float(krw_usd_backup['Close'].dropna().iloc[-1])
         except:
-            # 3안: 금융망이 통째로 먹통이 되는 비상사태에만 최근 평균치인 1380원 적용
             return 1380.0
 
 @st.cache_data(ttl=600)
@@ -193,7 +181,9 @@ def get_us_price(ticker, fallback_price):
     try:
         df = yf.Ticker(ticker).history(period="5d")
         if df.empty or 'Close' not in df.columns: return fallback_price
-        return float(df['Close'].iloc[-1])
+        closed_series = df['Close'].dropna() # 🛡️ 가격 데이터 중 NaN 값 제거
+        if closed_series.empty: return fallback_price
+        return float(closed_series.iloc[-1])
     except:
         return fallback_price
 
@@ -202,14 +192,16 @@ def get_kr_price(ticker, fallback_price):
     try:
         df = fdr.DataReader(ticker)
         if df.empty or 'Close' not in df.columns: return fallback_price
-        return int(df['Close'].iloc[-1])
+        closed_series = df['Close'].dropna() # 🛡️ 가격 데이터 중 NaN 값 제거
+        if closed_series.empty: return fallback_price
+        return int(closed_series.iloc[-1])
     except:
         return fallback_price
 
 # --- 연산 및 HTML 카드 생성 ---
 usd_krw_rate = get_exchange_rate()
 total_asset_krw = 0
-total_invested_krw = 0  # ★ 총 매입 원금을 담을 그릇 추가
+total_invested_krw = 0 
 pie_data = []
 
 cards_html = '<div class="card-grid">'
@@ -222,7 +214,7 @@ if "US_Stocks" in portfolio:
         current_value_krw = current_value_usd * usd_krw_rate
         
         total_asset_krw += current_value_krw
-        total_invested_krw += (info["avg_price"] * info["shares"] * usd_krw_rate) # ★ 원금 더하기
+        total_invested_krw += (info["avg_price"] * info["shares"] * usd_krw_rate)
         
         yield_pct = ((current_price - info["avg_price"]) / info["avg_price"]) * 100 if info["avg_price"] > 0 else 0
         yield_color = "#FF3366" if yield_pct < 0 else "#00FF66" 
@@ -245,7 +237,7 @@ if "KR_Stocks" in portfolio:
         current_value_krw = current_price * info["shares"]
         
         total_asset_krw += current_value_krw
-        total_invested_krw += (info["avg_price"] * info["shares"]) # ★ 원금 더하기
+        total_invested_krw += (info["avg_price"] * info["shares"])
         
         yield_pct = ((current_price - info["avg_price"]) / info["avg_price"]) * 100 if info["avg_price"] > 0 else 0
         yield_color = "#FF3366" if yield_pct < 0 else "#00FF66"
@@ -277,7 +269,7 @@ if "Cash" in portfolio:
             title_color = "#FF9F00"
         
         total_asset_krw += current_value_krw
-        total_invested_krw += current_value_krw # ★ 현금은 원금=평가액 동일하므로 그대로 더함
+        total_invested_krw += current_value_krw
         
         pie_data.append({"종목명": info["name"], "평가액": current_value_krw})
         
@@ -295,8 +287,7 @@ df_pie = pd.DataFrame(pie_data)
 # --- 화면 출력 ---
 st.markdown("<br>", unsafe_allow_html=True)
 
-# ★ 추가: 건실청년에게 후원하기 버튼 (클릭 시 계좌번호 자동 복사)
-# ★ 추가: 건실청년에게 후원하기 버튼 (아이프레임 보안 우회 버전)
+# 후원하기 버튼 주입
 import streamlit.components.v1 as components
 components.html(
     """
@@ -327,12 +318,10 @@ components.html(
 
     <script>
         function copyAccount() {
-            // 눈에 보이지 않는 임시 텍스트 입력창을 만듭니다.
             var tempInput = document.createElement('input');
-            tempInput.value = '토스뱅크 1000-8439-7555'; // ★ 여기에 본인 계좌번호 입력
+            tempInput.value = '토스뱅크 1000-8439-7555'; 
             document.body.appendChild(tempInput);
             
-            // 임시 창의 텍스트를 선택하고 강제 복사 명령을 내립니다. (구형/모바일 브라우저 호환)
             tempInput.select();
             tempInput.setSelectionRange(0, 99999); 
             
@@ -343,7 +332,6 @@ components.html(
                 alert('복사 권한이 차단되었습니다. 수동으로 복사해주세요: 토스뱅크 1000-8439-7555');
             }
             
-            // 임시 창을 다시 지웁니다.
             document.body.removeChild(tempInput);
         }
     </script>
@@ -351,13 +339,13 @@ components.html(
     height=85
 )
 
-# ★ 총 수익률 및 손익 계산 로직
+# 총 수익률 및 손익 계산
 total_pnl = total_asset_krw - total_invested_krw
 total_yield_pct = (total_pnl / total_invested_krw) * 100 if total_invested_krw > 0 else 0
-pnl_color = "#FF3366" if total_pnl < 0 else "#00FF66"  # 마이너스면 핑크, 플러스면 네온그린
+pnl_color = "#00FF66" if total_pnl >= 0 else "#FF3366"
 pnl_sign = "+" if total_pnl > 0 else ""
 
-# 총 자산 요약 (높이와 여백을 압축하여 공간 확보)
+# 총 자산 요약
 st.markdown(f"""
 <div style="background-color:rgba(14, 17, 23, 0.2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border:1px solid rgba(31, 35, 51, 0.5); border-radius:8px; padding:20px; text-align:center; margin-bottom:20px; box-shadow: 0px 10px 30px rgba(0,0,0,0.5);">
     <div style="color:#a0a6b5; font-size:14px; font-weight:600; margin-bottom:5px; text-shadow: 0px 2px 4px rgba(0,0,0,0.8);">TOTAL ASSET (KRW)</div>
@@ -367,9 +355,8 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-
 # ==========================================
-# 📈 자산 성장 히스토리 (Total Asset 바로 아래로 이동)
+# 📈 자산 성장 히스토리 (Total Asset 바로 아래 배치)
 # ==========================================
 history_csv_url = "https://raw.githubusercontent.com/heily11223/-/main/history.csv"
 
@@ -396,14 +383,14 @@ if not df_history.empty and len(df_history) > 0:
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
         font=dict(color='#ffffff', family='Pretendard'), 
-        margin=dict(t=10, b=10, l=10, r=10), # 좌우 여백을 최소화
+        margin=dict(t=10, b=10, l=10, r=10),
         xaxis=dict(
             showgrid=False, 
             color='#8C92A4', 
             title='', 
             type='category',
             fixedrange=True,
-            tickfont=dict(size=11) # 모바일용으로 X축 글자 크기 축소
+            tickfont=dict(size=11)
         ),
         yaxis=dict(
             showgrid=True, 
@@ -411,32 +398,27 @@ if not df_history.empty and len(df_history) > 0:
             color='#8C92A4',
             title='', 
             fixedrange=True,
-            side='right',          # ★ 핵심: 세로축 숫자를 주식 앱처럼 우측으로 이동!
-            ticksuffix='만',       # 공간 절약을 위해 '만원' 대신 '만'으로 축약
-            tickfont=dict(size=11) # 모바일용으로 Y축 글자 크기 축소
+            side='right',          
+            ticksuffix='만',       
+            tickfont=dict(size=11)
         ),
         hovermode="x unified",
-        height=220, # 모바일에서 한눈에 들어오는 황금비율 높이
+        height=220, 
         showlegend=False
     )
     
     fig_line.update_traces(
         line=dict(color='#00E5FF', width=3),
         marker=dict(size=8, color='#00FF66', line=dict(width=2, color='#ffffff')),
-        hovertemplate='%{y:,}만원' # 터치했을 때는 '만원'까지 풀로 보여줌
+        hovertemplate='%{y:,}만원'
     )
     
     st.markdown('<div style="border: 1px solid rgba(31, 35, 51, 0.5); border-radius: 8px; padding: 15px 5px; margin-bottom: 25px; background-color: rgba(14, 17, 23, 0.4); box-shadow: 0px 4px 15px rgba(0,0,0,0.3); backdrop-filter: blur(10px);">', unsafe_allow_html=True)
-    
     st.plotly_chart(fig_line, use_container_width=True, config={'displayModeBar': False})
-    
     st.markdown('</div>', unsafe_allow_html=True)
-# ==========================================
-# 레이아웃 나누기 (계좌별 상세 & 포트폴리오 비중)
-col_cards, col_chart = st.columns([1.8, 1])
 
-# ... (이후 기존 코드 유지) ...
-# 레이아웃 나누기
+# ==========================================
+# 📊 레이아웃 나누기 (계좌별 상세 & 포트폴리오 비중)
 col_cards, col_chart = st.columns([1.8, 1])
 
 with col_cards:
@@ -446,17 +428,18 @@ with col_cards:
 with col_chart:
     st.markdown('<h3 style="color:white; font-size:18px; margin-bottom:10px; text-shadow: 0px 4px 10px rgba(0,0,0,0.9);">02 &nbsp; 포트폴리오 비중</h3>', unsafe_allow_html=True)
     
-    fig = px.pie(df_pie, values='평가액', names='종목명', hole=0.5)
-    fig.update_layout(
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='#ffffff', family='Pretendard', size=14),
-        margin=dict(t=20, b=20, l=20, r=20),
-        showlegend=False 
-    )
-    fig.update_traces(
-        textposition='inside', 
-        textinfo='percent+label',
-        marker=dict(colors=['#00E5FF', '#00FF66', '#FF9F00', '#FF3366', '#9D00FF'], line=dict(color='rgba(14, 17, 23, 0.8)', width=2))
-    )
-    st.plotly_chart(fig, use_container_width=True)
+    if not df_pie.empty:
+        fig = px.pie(df_pie, values='평가액', names='종목명', hole=0.5)
+        fig.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='#ffffff', family='Pretendard', size=14),
+            margin=dict(t=20, b=20, l=20, r=20),
+            showlegend=False 
+        )
+        fig.update_traces(
+            textposition='inside', 
+            textinfo='percent+label',
+            marker=dict(colors=['#00E5FF', '#00FF66', '#FF9F00', '#FF3366', '#9D00FF'], line=dict(color='rgba(14, 17, 23, 0.8)', width=2))
+        )
+        st.plotly_chart(fig, use_container_width=True)
