@@ -312,57 +312,7 @@ df_pie = pd.DataFrame(pie_data)
 # --- 화면 출력 ---
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 후원하기 버튼 주입
-import streamlit.components.v1 as components
-components.html(
-    """
-    <div style="text-align: center; margin-bottom: 15px;">
-        <button onclick="copyAccount()" 
-            style="
-                background: linear-gradient(45deg, #FF9F00, #FF3366);
-                color: white; 
-                border: none; 
-                padding: 12px 35px; 
-                border-radius: 8px; 
-                font-family: 'Pretendard', sans-serif;
-                font-size: 16px; 
-                font-weight: 900; 
-                cursor: pointer; 
-                box-shadow: 0px 4px 15px rgba(255, 159, 0, 0.3);
-                transition: all 0.3s ease;
-                width: 100%;
-                max-width: 320px;
-                letter-spacing: -0.5px;
-            "
-            onmouseover="this.style.transform='scale(1.03)'; this.style.boxShadow='0px 6px 20px rgba(255, 51, 102, 0.5)';"
-            onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0px 4px 15px rgba(255, 159, 0, 0.3)';"
-        >
-            💰 건실청년에게 후원하기
-        </button>
-    </div>
 
-    <script>
-        function copyAccount() {
-            var tempInput = document.createElement('input');
-            tempInput.value = '토스뱅크 1000-8439-7555'; 
-            document.body.appendChild(tempInput);
-            
-            tempInput.select();
-            tempInput.setSelectionRange(0, 99999); 
-            
-            try {
-                document.execCommand('copy');
-                alert('⚡ 건실청년의 계좌번호가 복사되었습니다!\\n(토스뱅크 1000-8439-7555)');
-            } catch (err) {
-                alert('복사 권한이 차단되었습니다. 수동으로 복사해주세요: 토스뱅크 1000-8439-7555');
-            }
-            
-            document.body.removeChild(tempInput);
-        }
-    </script>
-    """,
-    height=85
-)
 
 # 총 수익률 및 손익 계산
 total_pnl = total_asset_krw - total_invested_krw
