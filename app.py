@@ -189,10 +189,29 @@ def get_us_price(ticker, fallback_price):
 
 @st.cache_data(ttl=600)
 def get_kr_price(ticker, fallback_price):
+    import urllib.request
+    import re
+    
+    # 🌟 특수 센서: KRX 금현물(M04020000)인 경우 네이버 금융에서 직접 가격을 긁어옴
+    if ticker == 'M04020000':
+        try:
+            url = "https://m.stock.naver.com/marketindex/metals/M04020000"
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            html = urllib.request.urlopen(req).read().decode('utf-8')
+            
+            # 정규식으로 네이버 웹페이지에 찍힌 현재가 글자만 핀셋으로 뽑아냄
+            match = re.search(r'DetailInfo_price[^>]*>([\d,]+)</strong>', html)
+            if match:
+                price_str = match.group(1).replace(',', '') # 콤마 제거
+                return int(price_str)
+        except:
+            return fallback_price # 네이버 서버 점검 시 평단가로 방어
+            
+    # 일반 한국 주식은 기존처럼 FDR 로직 사용
     try:
         df = fdr.DataReader(ticker)
         if df.empty or 'Close' not in df.columns: return fallback_price
-        closed_series = df['Close'].dropna() # 🛡️ 가격 데이터 중 NaN 값 제거
+        closed_series = df['Close'].dropna() 
         if closed_series.empty: return fallback_price
         return int(closed_series.iloc[-1])
     except:
