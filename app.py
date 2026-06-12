@@ -117,7 +117,7 @@ header {visibility: hidden;}
 st.markdown(custom_css, unsafe_allow_html=True)
 # ==========================================
 
-st.markdown('<h1 style="color:white; font-weight:900; letter-spacing:-1px; text-shadow: 0px 4px 15px rgba(0,0,0,0.9);">⚡ 건실청년의 삶</h1>', unsafe_allow_html=True)
+st.markdown('<h1 style="color:white; font-weight:900; letter-spacing:-1px; text-shadow: 0px 4px 15px rgba(0,0,0,0.9);">🕵️ 나는 무죄요</h1>', unsafe_allow_html=True)
 
 # 구글 시트 연동
 sheet_url = "https://docs.google.com/spreadsheets/d/1PQN3ef9KmynpP-P9GhBHdCVFXXto3_bG5HON8uLHaYE/edit?usp=sharing"
