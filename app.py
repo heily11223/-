@@ -192,20 +192,26 @@ def get_kr_price(ticker, fallback_price):
     import urllib.request
     import re
     
-    # 🌟 특수 센서: KRX 금현물(M04020000)인 경우 네이버 금융에서 직접 가격을 긁어옴
+    # 🌟 특수 센서: KRX 금현물(M04020000)인 경우 네이버 데스크톱 원자재 페이지에서 긁어옴
     if ticker == 'M04020000':
         try:
-            url = "https://m.stock.naver.com/marketindex/metals/M04020000"
-            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            html = urllib.request.urlopen(req).read().decode('utf-8')
+            # 네이버 금융 '국내 금(KRX 금현물)' 전용 다이렉트 주소
+            url = "https://finance.naver.com/marketindex/materialDetail.naver?marketindexCd=CMDT_GDEX"
             
-            # 정규식으로 네이버 웹페이지에 찍힌 현재가 글자만 핀셋으로 뽑아냄
-            match = re.search(r'DetailInfo_price[^>]*>([\d,]+)</strong>', html)
+            # 봇 차단을 막기 위해 일반 브라우저인 척 위장 (User-Agent)
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+            
+            # ★ 핵심: 네이버 금융은 구형(euc-kr) 인코딩을 쓰므로 변환해야 글자가 안 깨짐
+            html = urllib.request.urlopen(req).read().decode('euc-kr', errors='ignore')
+            
+            # 정규식으로 'no_today' 영역 안에 있는 가격 숫자만 핀셋으로 뽑아냄
+            match = re.search(r'no_today.*?<span class="blind">([\d,]+)</span>', html, re.DOTALL)
+            
             if match:
                 price_str = match.group(1).replace(',', '') # 콤마 제거
                 return int(price_str)
         except:
-            return fallback_price # 네이버 서버 점검 시 평단가로 방어
+            return fallback_price # 서버 먹통일 때만 평단가 방어
             
     # 일반 한국 주식은 기존처럼 FDR 로직 사용
     try:
